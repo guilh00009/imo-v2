@@ -66,23 +66,32 @@ function ChatContent() {
 
   const fetchMessages = async () => {
     if (!characterId) return;
-
+  
     try {
-      // Fetch messages for this character
+      // Get the current authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('Please sign in to view messages');
+        return;
+      }
+  
+      // Fetch messages for this character and user
       const { data: messages, error } = await supabase
         .from('messages')
         .select('*')
         .eq('character_id', characterId)
+        .eq('user_id', user.id) // Filter messages by authenticated user
         .order('created_at', { ascending: true });
-
+  
       if (error) throw error;
-
+  
       // Add greeting message if no messages exist
       if (messages.length === 0 && character?.greeting) {
         const greetingMessage: MessageType = {
           id: 'greeting',
           character_id: character.id,
-          user_id: 'system',
+          user_id: user.id,
           content: character.greeting,
           role: 'assistant' as const,
           created_at: new Date().toISOString()
@@ -112,13 +121,20 @@ function ChatContent() {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !character || !characterId) return;
-
+  
     try {
+      // Get the current authenticated user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        toast.error('Please sign in to send messages');
+        return;
+      }
       // Add user message
       const userMessage: MessageType = {
         id: crypto.randomUUID(),
         character_id: characterId,
-        user_id: 'anonymous',
+        user_id: user.id, // Use the authenticated user's ID
         content: newMessage,
         role: 'user',
         created_at: new Date().toISOString()
@@ -153,7 +169,7 @@ function ChatContent() {
       const assistantMessage: MessageType = {
         id: crypto.randomUUID(),
         character_id: characterId,
-        user_id: 'anonymous',
+        user_id: user.id, // Use the same user ID for the conversation thread
         content: data.message,
         role: 'assistant',
         created_at: new Date().toISOString()
