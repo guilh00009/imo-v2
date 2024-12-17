@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --config tailwind.config.ts",
-    "build": "next build --config tailwind.config.ts && supabase init",
+    "dev": "next dev",
+    "build": "next build && supabase init",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "npx tailwindcss init"
