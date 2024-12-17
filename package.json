@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build && supabase init",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "echo 'Skipping Tailwind config generation'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
