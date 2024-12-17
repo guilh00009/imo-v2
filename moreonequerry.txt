@@ -1,0 +1,24 @@
+-- Create storage policies for avatars bucket
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', true)
+on conflict (id) do nothing;
+
+-- Allow public read access to avatars
+create policy "Public Access"
+on storage.objects for select
+using ( bucket_id = 'avatars' );
+
+-- Allow anyone to upload avatars
+create policy "Anyone can upload avatars"
+on storage.objects for insert
+with check ( bucket_id = 'avatars' );
+
+-- Allow anyone to update their uploads
+create policy "Anyone can update avatars"
+on storage.objects for update
+using ( bucket_id = 'avatars' );
+
+-- Allow anyone to delete their uploads
+create policy "Anyone can delete avatars"
+on storage.objects for delete
+using ( bucket_id = 'avatars' );

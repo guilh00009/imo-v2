@@ -1,0 +1,55 @@
+-- Drop existing tables
+DROP TABLE IF EXISTS public.messages;
+DROP TABLE IF EXISTS public.characters;
+
+-- Recreate tables with new schema
+CREATE TABLE IF NOT EXISTS public.characters (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  name text NOT NULL,
+  avatar_url text,
+  description text,
+  personality text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+  created_by text DEFAULT 'anonymous',
+  is_public boolean DEFAULT true,
+  greeting text,
+  category text
+);
+
+CREATE TABLE IF NOT EXISTS public.messages (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  character_id uuid REFERENCES public.characters(id) ON DELETE CASCADE,
+  user_id text DEFAULT 'anonymous',
+  content text NOT NULL,
+  role text NOT NULL,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.characters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
+
+-- Create policies
+CREATE POLICY "Public characters are viewable by everyone"
+  ON public.characters FOR SELECT
+  USING (is_public = true);
+
+CREATE POLICY "Anyone can create characters"
+  ON public.characters FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Anyone can update characters"
+  ON public.characters FOR UPDATE
+  USING (true);
+
+CREATE POLICY "Anyone can delete characters"
+  ON public.characters FOR DELETE
+  USING (true);
+
+CREATE POLICY "Anyone can view messages"
+  ON public.messages FOR SELECT
+  USING (true);
+
+CREATE POLICY "Anyone can insert messages"
+  ON public.messages FOR INSERT
+  WITH CHECK (true);
