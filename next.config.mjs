@@ -18,7 +18,9 @@ const nextConfig = {
   // Additional configuration to ensure TypeScript config is used
   env: {
     TAILWIND_CONFIG_PATH: './tailwind.config.ts'
-  }
+  },
+  // Set metadata base for social and open graph images
+  metadataBase: new URL('https://yourproject.com')
 };
 
 export default nextConfig;
