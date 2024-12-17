@@ -7,7 +7,6 @@
     "build": "next build && supabase init",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "npx tailwindcss init"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
