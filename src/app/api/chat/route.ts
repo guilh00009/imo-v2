@@ -65,8 +65,7 @@ Rules:
           messages: [systemMessage, ...formattedMessages],
           temperature: 0,
           max_tokens: 500
-        }),
-        timeout: 0 // Set timeout to 0 to disable it
+        })
       });
 
       if (!response.ok) {
