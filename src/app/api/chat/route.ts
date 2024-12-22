@@ -95,7 +95,7 @@ Rules:
       const thinkingMatches = rawMessage.match(/<think\d*>([\s\S]*?)<\/think\d*>/g);
       const thinking = thinkingMatches
         ? thinkingMatches
-            .map(match => match.replace(/<think\d*>|<\/think\d*>/g, '').trim())
+            .map((match: string) => match.replace(/<think\d*>|<\/think\d*>/g, '').trim())
             .join('\n')
         : '';
       const finalResponse = rawMessage.replace(/<think\d*>[\s\S]*?<\/think\d*>/g, '').trim();
