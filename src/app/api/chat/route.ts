@@ -64,7 +64,8 @@ Rules:
           model: 'cosmosrp',
           messages: [systemMessage, ...formattedMessages],
           temperature: 0,
-          max_tokens: 500
+          max_tokens: 500,
+          stream: true
         })
       });
 
@@ -76,32 +77,38 @@ Rules:
         throw new Error(`API request failed with status ${response.status}`);
       }
 
-      const completion = await response.json();
+      // Create a ReadableStream from the response body
+      const stream = response.body;
 
-      console.log('Received response from API:', {
-        status: 'success',
-        hasChoices: !!completion?.choices?.length,
-        firstChoice: completion?.choices?.[0]?.message ? 'present' : 'missing'
+      // Create a TransformStream to process the response chunks
+      const transformStream = new TransformStream({
+        async transform(chunk, controller) {
+          const text = new TextDecoder().decode(chunk);
+          const lines = text.split('\n').filter((line: string) => line.trim() !== '');
+
+          for (const line of lines) {
+            const message = line.replace(/^data: /, '');
+            if (message === '[DONE]') {
+              controller.terminate();
+              return;
+            }
+            try {
+              const json = JSON.parse(message);
+              const content = json.choices[0].delta.content;
+              if (content) {
+                controller.enqueue(content);
+              }
+            } catch (error) {
+              console.error('Error parsing message:', error);
+            }
+          }
+        }
       });
 
-      if (!completion?.choices?.[0]?.message?.content) {
-        console.error('Invalid response format from API:', completion);
-        throw new Error('API response missing required content');
-      }
-
-      const rawMessage = completion.choices[0].message.content;
-
-      // Process the message to handle thinking tags
-      const thinkingMatches = rawMessage.match(/<think\d*>([\s\S]*?)<\/think\d*>/g);
-      const thinking = thinkingMatches
-        ? thinkingMatches
-            .map((match: string) => match.replace(/<think\d*>|<\/think\d*>/g, '').trim())
-            .join('\n')
-        : '';
-      const finalResponse = rawMessage.replace(/<think\d*>[\s\S]*?<\/think\d*>/g, '').trim();
-
-      // Return only the final response without thinking tags
-      return NextResponse.json({ message: finalResponse });
+      // Process the stream and send the response
+      return new NextResponse(stream.pipeThrough(transformStream), {
+        headers: { 'Content-Type': 'text/event-stream' }
+      });
     } catch (apiError: any) {
       console.error('API error:', {
         error: apiError,
