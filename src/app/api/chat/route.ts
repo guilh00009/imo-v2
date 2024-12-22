@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
 import { type Character, type Message } from '@/lib/supabase';
+import OpenAI from 'openpipe/openai';
 
 type Role = 'system' | 'user' | 'assistant';
 
 export async function POST(request: Request) {
   try {
+    const OPENPIPE_API_KEY = process.env.OPENPIPE_API_KEY;
+    
+    if (!OPENPIPE_API_KEY) {
+      console.error('OpenPipe API key is missing in environment variables');
+      return new NextResponse('OpenPipe API key is not configured in environment variables', { status: 500 });
+    }
+
     let requestBody;
     try {
       requestBody = await request.json();
@@ -50,70 +60,61 @@ Rules:
 - After thinking, provide your final response without tags`
     };
 
-    console.log('Sending request to API:', 'https://api.pawan.krd/cosmosrp/v1/chat/completions');
+    console.log('Initializing OpenPipe client with API key:', OPENPIPE_API_KEY.slice(0, 8) + '...');
 
-    // Get completion from the API
+    // Initialize OpenPipe client
+    const client = new OpenAI({
+      apiKey: OPENPIPE_API_KEY,
+      baseURL: 'https://api.openpipe.ai/v1'
+    });
+
+    console.log('Sending request to OpenPipe with model:', 'openpipe:Samantha-70b');
+
+    // Get completion from OpenPipe
     try {
-      const response = await fetch('https://api.pawan.krd/cosmosrp/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer 1',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'cosmosrp',
-          messages: [systemMessage, ...formattedMessages],
-          temperature: 0,
-          max_tokens: 500
-        })
+      const completion = await client.chat.completions.create({
+        model: 'openpipe:Samantha-70b',
+        messages: [systemMessage, ...formattedMessages],
+        temperature: 0,
+        max_tokens: 500
       });
 
-      if (!response.ok) {
-        console.error('API error:', {
-          status: response.status,
-          statusText: response.statusText
-        });
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      const completion = await response.json();
-
-      console.log('Received response from API:', {
+      console.log('Received response from OpenPipe:', {
         status: 'success',
         hasChoices: !!completion?.choices?.length,
         firstChoice: completion?.choices?.[0]?.message ? 'present' : 'missing'
       });
 
       if (!completion?.choices?.[0]?.message?.content) {
-        console.error('Invalid response format from API:', completion);
-        throw new Error('API response missing required content');
+        console.error('Invalid response format from OpenPipe:', completion);
+        throw new Error('OpenPipe response missing required content');
       }
 
       const rawMessage = completion.choices[0].message.content;
 
       // Process the message to handle thinking tags
       const thinkingMatches = rawMessage.match(/<think\d*>([\s\S]*?)<\/think\d*>/g);
-      const thinking = thinkingMatches
+      const thinking = thinkingMatches 
         ? thinkingMatches
-            .map((match: string) => match.replace(/<think\d*>|<\/think\d*>/g, '').trim())
+            .map(match => match.replace(/<think\d*>|<\/think\d*>/g, '').trim())
             .join('\n')
         : '';
       const finalResponse = rawMessage.replace(/<think\d*>[\s\S]*?<\/think\d*>/g, '').trim();
 
       // Return only the final response without thinking tags
       return NextResponse.json({ message: finalResponse });
-    } catch (apiError: any) {
-      console.error('API error:', {
-        error: apiError,
-        message: apiError.message,
-        response: apiError.response?.data,
-        status: apiError.response?.status,
+    } catch (openPipeError: any) {
+      console.error('OpenPipe API error:', {
+        error: openPipeError,
+        message: openPipeError.message,
+        response: openPipeError.response?.data,
+        status: openPipeError.response?.status,
       });
       return new NextResponse(
-        `API error: ${apiError.message}${
-          apiError.response?.data ? ` - ${JSON.stringify(apiError.response.data)}` : ''
+        `OpenPipe API error: ${openPipeError.message}${
+          openPipeError.response?.data ? ` - ${JSON.stringify(openPipeError.response.data)}` : ''
         }`,
-        { status: apiError.response?.status || 500 }
+        { status: openPipeError.response?.status || 500 }
       );
     }
   } catch (error) {
@@ -123,4 +124,4 @@ Rules:
       { status: 500 }
     );
   }
-}
+} 
