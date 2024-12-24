@@ -75,7 +75,7 @@ Rules:
     // Get completion from OpenPipe
     try {
       const completion = await client.chat.completions.create({
-        model: 'openpipe:Samantha-8b-vo4',
+        model: 'openpipe:odd-cloths-enter',
         messages: [systemMessage, ...formattedMessages],
         temperature: 0,
         max_tokens: 500
