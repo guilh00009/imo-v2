@@ -57,9 +57,7 @@ Rules:
 - Use the character's speaking style and mannerisms
 - Reference the character's background naturally
 - Use <think> tags to show your thought process before responding
-- After thinking, provide your final response without tags
-- The name of the User is not Guilherme, dont they it
-- Just call the user Guilherme if they say explicitly that their name is it.`
+- After thinking, provide your final response without tags`
     };
 
     console.log('Initializing OpenPipe client with API key:', OPENPIPE_API_KEY.slice(0, 8) + '...');
